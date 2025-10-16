@@ -226,20 +226,6 @@ Would you like to save this bill to Salesforce for tracking?
 - **Solution:** AI analyzes bills, extracts fiscal data, flags high-impact legislation
 - **ROI:** hours saved annually (example metric from docs)
 
-### Healthcare
-- **Problem:** Medical records scattered across PDFs
-- **Solution:** Extract diagnoses, medications, treatment plans automatically
-- **ROI:** Faster patient intake, better care coordination
-
-### Financial Services
-- **Problem:** Analysts manually reviewing contracts and reports
-- **Solution:** Extract terms, obligations, financial metrics
-- **ROI:** 10x faster contract review, reduced compliance risk
-
-### Legal
-- **Problem:** Associates spending hours on document review
-- **Solution:** AI summarizes cases, extracts key clauses, flags risks
-- **ROI:** Junior attorney time redirected to higher-value work
 
 ---
 
