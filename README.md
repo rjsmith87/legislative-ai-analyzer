@@ -2,7 +2,7 @@
 
 > AI-powered legislative analysis for Salesforce SEs. Deploy a complete Texas bill analysis system with Agentforce in 20 minutes.
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/YOUR_USERNAME/texas-bill-analyzer)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/RobsPythonThings/texas-bill-analyzer)
 
 ---
 

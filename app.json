@@ -6,7 +6,7 @@
   "keywords": [
     "texas",
     "legislation",
-    "bills",
+    "bills",f
     "ai",
     "claude",
     "salesforce",
@@ -15,7 +15,7 @@
     "policy"
   ],
   "success_url": "/health",
-  "website": "https://github.com/YOUR_USERNAME/texas-bill-analyzer",
+  "website": "https://github.com/RobsPythonThings/texas-bill-analyzer",
   "buildpacks": [
     {
       "url": "heroku/python"
