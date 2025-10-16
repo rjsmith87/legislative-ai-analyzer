@@ -10,11 +10,11 @@
 
 **For Demos:** Show customers how AI agents can analyze complex government documents, extract fiscal data, and structure information for business use.
 
-**For SEs:** Get a production-ready demo environment that:
-- ✅ Analyzes ANY Texas legislative bill (HB, SB, HJ, SJ)
-- ✅ Extracts fiscal impacts automatically with Claude AI
+**For SEs:** Get a demo-ready demo environment that:
+- ✅ Analyzes ANY Texas legislative house bill.
+- ✅ Extracts fiscal impacts automatically with Claude AI and performs financial calculations
 - ✅ Returns natural language summaries for Agentforce
-- ✅ Provides structured data for Salesforce records
+- ✅ Provides structured data for Salesforce records (and creation of Salesforce records)
 - ✅ Caches results for fast repeat queries (45%+ cache hit rate)
 - ✅ Handles large bills (500+ pages) with background processing
 
