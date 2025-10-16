@@ -4,7 +4,7 @@
 
 ---
 
-## Step 1: Deploy Backend (3 minutes)
+## Step 1: Deploy Backend (10 Minutes)
 
 1. Click the **Deploy to Heroku** button
 2. Wait for deployment (~3 minutes)
