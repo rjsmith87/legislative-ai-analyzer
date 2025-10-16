@@ -1,0 +1,65 @@
+{
+  "name": "Texas Bill Analyzer",
+  "description": "AI-powered analysis of Texas legislative bills with Agentforce integration. Fetches bills from Texas Legislature, analyzes with Claude AI, extracts fiscal impacts, and returns structured data for Salesforce.",
+  "repository": "https://github.com/RobsPythonThings/texas-bill-analyzer",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Flag_of_Texas.svg/320px-Flag_of_Texas.svg.png",
+  "keywords": [
+    "texas",
+    "legislation",
+    "bills",
+    "ai",
+    "claude",
+    "salesforce",
+    "agentforce",
+    "government",
+    "policy"
+  ],
+  "success_url": "/health",
+  "website": "https://github.com/YOUR_USERNAME/texas-bill-analyzer",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "TX_LEGISLATURE_SESSION": {
+      "description": "Current Texas Legislative Session (89R = 2025-2026, 90R = 2027-2028, etc.)",
+      "value": "89R",
+      "required": true
+    },
+    "INFERENCE_URL": {
+      "description": "Heroku Managed Inference URL (automatically set by addon)",
+      "required": false
+    },
+    "INFERENCE_KEY": {
+      "description": "Heroku Managed Inference API Key (automatically set by addon)",
+      "required": false
+    },
+    "INFERENCE_MODEL_ID": {
+      "description": "Claude model to use for analysis",
+      "value": "claude-4-sonnet",
+      "required": false
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-redis:mini",
+      "as": "REDIS"
+    },
+    {
+      "plan": "heroku-inference:starter",
+      "as": "HEROKU_INFERENCE"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "stack": "heroku-22"
+}
