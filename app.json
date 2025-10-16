@@ -47,10 +47,8 @@
       "as": "REDIS"
     },
     {
-     {
-  "plan": "heroku-inference:claude-4-sonnet",
-  "as": "HEROKU_INFERENCE"
-}
+      "plan": "heroku-inference:claude-4-sonnet",
+      "as": "HEROKU_INFERENCE"
     }
   ],
   "formation": {
