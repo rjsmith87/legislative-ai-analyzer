@@ -1,4 +1,4 @@
-# Texas Bill Analyzer 🏛️
+# Legilsative Bill Analyzer 🏛️
 
 > AI-powered legislative analysis for Salesforce SEs. Deploy a complete Texas bill analysis system with Agentforce in 20 minutes.
 
