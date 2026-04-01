@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+
+# Backups
+*.backup
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
