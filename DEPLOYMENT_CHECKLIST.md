@@ -1,6 +1,6 @@
 # Deployment Checklist - Texas Bill Analyzer
 
-Use this to verify everything works before sharing with other SEs.
+Use this to verify everything works before sharing with your team.
 
 ---
 
@@ -230,7 +230,7 @@ heroku addons --app your-app-name
 
 ## 📋 Pre-Share Checklist
 
-Before sharing with other SEs:
+Before sharing with your team:
 
 - [ ] Deploy button tested personally
 - [ ] Fresh Salesforce org tested
@@ -251,4 +251,4 @@ Before sharing with other SEs:
 - SE enablement sessions
 
 
-**Questions or issues?** Open a GitHub issue or ping me in Slack!
+**Questions or issues?** Open a GitHub issue.

@@ -4,15 +4,21 @@ import os
 import re
 import json
 import urllib3
+import warnings
 import requests
 from pdfminer.high_level import extract_text
 from datetime import datetime
 
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 CURRENT_SESSION = os.environ.get('TX_LEGISLATURE_SESSION', '89R')
 TELICON_BASE_URL = "https://www.telicon.com/www/TX"
+
+def _telicon_request(method, url, **kwargs):
+    """Make a request to Telicon with SSL verification disabled (self-signed cert).
+    Suppresses InsecureRequestWarning only for these calls."""
+    kwargs['verify'] = False
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', urllib3.exceptions.InsecureRequestWarning)
+        return getattr(requests, method)(url, **kwargs)
 
 # Copy all helper functions from app.py
 def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
@@ -175,13 +181,13 @@ def try_bill_url_patterns(bill_type: str, bill_num: str, session: str) -> tuple:
     
     for pattern in patterns:
         try:
-            response = requests.head(pattern["url"], timeout=5, verify=False)
+            response = _telicon_request('head', pattern["url"], timeout=5)
             if response.status_code == 200:
                 print(f"[SUCCESS] Found bill using {pattern['type']}")
                 return pattern["url"], pattern["type"]
         except:
             continue
-    
+
     return None, None
 
 def try_fiscal_note_patterns(bill_type: str, bill_num: str, session: str) -> tuple:
@@ -203,7 +209,7 @@ def try_fiscal_note_patterns(bill_type: str, bill_num: str, session: str) -> tup
     
     for pattern in patterns:
         try:
-            response = requests.head(pattern["url"], timeout=5, verify=False)
+            response = _telicon_request('head', pattern["url"], timeout=5)
             if response.status_code == 200:
                 print(f"[SUCCESS] Found fiscal note using {pattern['type']}")
                 return pattern["url"], pattern["type"]
@@ -255,7 +261,7 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
     # Fetch bill PDF
     try:
         print(f"[BACKGROUND JOB] Fetching bill from: {bill_url}")
-        bill_response = requests.get(bill_url, timeout=60, verify=False)
+        bill_response = _telicon_request('get', bill_url, timeout=60)
         if bill_response.status_code != 200:
             return {
                 "error": "Failed to fetch bill",
@@ -290,7 +296,7 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
         if fiscal_url:
             try:
                 print(f"[BACKGROUND JOB] Fetching fiscal note from: {fiscal_url}")
-                fiscal_response = requests.get(fiscal_url, timeout=30, verify=False)
+                fiscal_response = _telicon_request('get', fiscal_url, timeout=30)
                 if fiscal_response.status_code == 200:
                     fiscal_text = extract_text_from_pdf_bytes(fiscal_response.content)
                     if fiscal_text:
