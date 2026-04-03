@@ -1,6 +1,7 @@
 # app.py - VERSION 9.2 - IMPROVED PROMPTS + BETTER FORMATTING
 import hmac
 import io
+import logging
 import os
 import re
 import json
@@ -13,6 +14,9 @@ from datetime import datetime
 from rq import Queue
 from rq.job import Job
 import redis
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 from utils import (
     CURRENT_SESSION,
@@ -85,9 +89,9 @@ try:
         )
 
         CACHE_ENABLED = True
-        print('[INFO] Redis cache enabled')
+        logger.info('Redis cache enabled')
 except Exception as e:
-    print(f'[WARN] Redis not available: {e}')
+    logger.warning('Redis not available: %s', e)
     redis_client = None
     redis_job_client = None
 
@@ -96,9 +100,9 @@ job_queue = None
 if CACHE_ENABLED and redis_job_client:
     try:
         job_queue = Queue('default', connection=redis_job_client)
-        print('[INFO] Job queue enabled')
+        logger.info('Job queue enabled')
     except Exception as e:
-        print(f'[WARN] Job queue not available: {e}')
+        logger.warning('Job queue not available: %s', e)
 
 # -----------------------------
 # Cache Helper Functions
@@ -125,10 +129,10 @@ def get_cached_analysis(bill_number: str, session: str) -> dict:
         cached = redis_client.get(key)
         if cached:
             result = json.loads(cached)
-            print(f"[CACHE HIT] Returning cached analysis for {bill_number}")
+            logger.info("Returning cached analysis for %s", bill_number)
             return result
     except Exception as e:
-        print(f"[CACHE ERROR] Failed to retrieve: {e}")
+        logger.error("Cache failed to retrieve: %s", e)
 
     return None
 
@@ -142,9 +146,9 @@ def cache_analysis(bill_number: str, session: str, data: dict, ttl: int = 86400)
         redis_client.setex(key, ttl, json.dumps(data))
         redis_client.set('last_success_timestamp', datetime.utcnow().isoformat())
         redis_client.set('last_success_bill', bill_number)
-        print(f"[CACHE STORED] Cached analysis for {bill_number} (TTL: {ttl}s)")
+        logger.info("Cached analysis for %s (TTL: %ds)", bill_number, ttl)
     except Exception as e:
-        print(f"[CACHE ERROR] Failed to store: {e}")
+        logger.error("Cache failed to store: %s", e)
 
 def invalidate_cache(bill_number: str, session: str):
     """Manually invalidate cache for a specific bill."""
@@ -154,9 +158,9 @@ def invalidate_cache(bill_number: str, session: str):
     try:
         key = get_cache_key(bill_number, session)
         redis_client.delete(key)
-        print(f"[CACHE INVALIDATED] {bill_number}")
+        logger.info("Cache invalidated for %s", bill_number)
     except Exception as e:
-        print(f"[CACHE ERROR] Failed to invalidate: {e}")
+        logger.error("Cache failed to invalidate: %s", e)
 
 def get_cache_stats() -> dict:
     """Get cache statistics."""
@@ -228,14 +232,14 @@ Summary:"""
             summary = response_data['choices'][0]['message']['content'].strip()
             # Remove "Summary:" prefix if Claude includes it
             summary = re.sub(r'^Summary:\s*', '', summary, flags=re.IGNORECASE)
-            print(f'[SUCCESS] Generated bill summary for {bill_number}')
+            logger.info('Generated bill summary for %s', bill_number)
             return summary
         else:
-            print(f'[WARN] Summary generation failed: {response.status_code}')
+            logger.warning('Summary generation failed: %s', response.status_code)
             return f"Analysis of {bill_number} relating to Texas legislation."
 
     except Exception as e:
-        print(f'[ERROR] Bill summary generation failed: {e}')
+        logger.error('Bill summary generation failed: %s', e)
         return f"Analysis of {bill_number} relating to Texas legislation."
 
 def format_complete_response(
@@ -334,7 +338,7 @@ def perform_bill_analysis(bill_number: str, session: str = None) -> dict:
 
     # Fetch bill PDF
     try:
-        print(f"[INFO] Fetching bill from: {bill_url}")
+        logger.info("Fetching bill from: %s", bill_url)
         bill_response = _telicon_request('get', bill_url, timeout=30)
         if bill_response.status_code != 200:
             return {
@@ -364,7 +368,7 @@ def perform_bill_analysis(bill_number: str, session: str = None) -> dict:
             "success": False
         }
 
-    print(f"[INFO] Extracted {len(bill_text)} characters from bill")
+    logger.info("Extracted %d characters from bill", len(bill_text))
 
     # Generate bill summary using Claude (IMPROVED PROMPT)
     bill_summary = generate_bill_summary(bill_text, formatted_bill)
@@ -380,18 +384,18 @@ def perform_bill_analysis(bill_number: str, session: str = None) -> dict:
 
         if fiscal_url:
             try:
-                print(f"[INFO] Fetching fiscal note from: {fiscal_url}")
+                logger.info("Fetching fiscal note from: %s", fiscal_url)
                 fiscal_response = _telicon_request('get', fiscal_url, timeout=15)
                 if fiscal_response.status_code == 200:
                     fiscal_text = extract_text_from_pdf_bytes(fiscal_response.content)
                     if fiscal_text:
-                        print(f"[INFO] Extracted {len(fiscal_text)} characters from fiscal note")
+                        logger.info("Extracted %d characters from fiscal note", len(fiscal_text))
                         # Extract structured fiscal data using Claude (IMPROVED PROMPT)
                         fiscal_data = extract_fiscal_data_with_claude(fiscal_text)
                         fiscal_note_summary = fiscal_data.get('fiscal_note_summary', '')
                         total_fiscal_impact = fiscal_data.get('total_fiscal_impact', 0)
             except Exception as e:
-                print(f"[WARN] Fiscal note fetch failed: {e}")
+                logger.warning("Fiscal note fetch failed: %s", e)
 
     # Generate the FORMATTED RESPONSE for Agentforce (IMPROVED FORMAT)
     formatted_response = format_complete_response(
@@ -502,7 +506,7 @@ def get_job_status(job_id):
             result = job.result
             if result and result.get('success'):
                 cache_analysis(result['bill_number'], result['session'], result)
-                print(f"[JOB COMPLETE] Cached result for {result['bill_number']}")
+                logger.info("Job complete, cached result for %s", result['bill_number'])
             return jsonify({
                 "status": "completed",
                 "result": result
@@ -518,7 +522,7 @@ def get_job_status(job_id):
                 "job_id": job_id
             })
     except Exception as e:
-        print(f"[ERROR] Job fetch failed: {e}")
+        logger.error("Job fetch failed: %s", e)
         return jsonify({
             "status": "error",
             "error": str(e)
@@ -535,7 +539,7 @@ def analyze_bill_for_agentforce():
     payload = request.get_json(silent=True) or {}
     bill_number = payload.get("bill_number")
 
-    print(f"[INFO] Agentforce request for: {bill_number}")
+    logger.info("Agentforce request for: %s", bill_number)
 
     if not bill_number:
         return jsonify({
@@ -548,7 +552,7 @@ def analyze_bill_for_agentforce():
     # Check cache first
     cached_result = get_cached_analysis(bill_number, session)
     if cached_result and cached_result.get('formatted_response'):
-        print(f"[CACHE HIT - AGENTFORCE] Returning formatted response for {bill_number}")
+        logger.info("Cache hit, returning formatted response for %s", bill_number)
         return jsonify({
             "response": cached_result['formatted_response'],
             "success": True
@@ -569,7 +573,7 @@ def analyze_bill_for_agentforce():
     cache_analysis(bill_number, session, result)
 
     # Return ONLY the formatted response for Agentforce
-    print(f"[SUCCESS - AGENTFORCE] Returning formatted response for {bill_number}")
+    logger.info("Returning formatted response for %s", bill_number)
     return jsonify({
         "response": result['formatted_response'],
         "success": True
@@ -588,7 +592,7 @@ def analyze_bill():
     force_refresh = payload.get("force_refresh", False)
     use_async = payload.get("use_async", False)
 
-    print(f"[INFO] analyzeBill - Request for: {bill_number}")
+    logger.info("analyzeBill - Request for: %s", bill_number)
 
     if not bill_number:
         return jsonify({
@@ -613,7 +617,7 @@ def analyze_bill():
         cached_result = get_cached_analysis(bill_number, session)
         if cached_result:
             cached_result['cache_hit'] = True
-            print(f"[CACHE HIT] Returning from cache for {bill_number}")
+            logger.info("Returning from cache for %s", bill_number)
             return jsonify(cached_result)
 
     # Determine if this should be a background job
@@ -630,7 +634,7 @@ def analyze_bill():
                 job_timeout='10m'
             )
 
-            print(f"[ASYNC] Queued background job {job.id} for {formatted_bill}")
+            logger.info("Queued background job %s for %s", job.id, formatted_bill)
 
             return jsonify({
                 "job_id": job.id,
@@ -641,7 +645,7 @@ def analyze_bill():
                 "success": True
             }), 202
         except Exception as e:
-            print(f"[ERROR] Failed to queue job: {e}")
+            logger.error("Failed to queue job: %s", e)
             # Fall through to synchronous processing
 
     # Perform analysis
@@ -657,17 +661,17 @@ def analyze_bill():
     # Cache the result
     cache_analysis(bill_number, session, result)
 
-    print(f"[SUCCESS] Analysis complete for {formatted_bill}")
+    logger.info("Analysis complete for %s", formatted_bill)
     return jsonify(result)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
-    print(f"[INFO] Starting Texas Bill Analyzer v9.2 on port {port}")
-    print(f"[INFO] Legislative session: {CURRENT_SESSION}")
-    print(f"[INFO] AI formatting: {'Enabled' if INFERENCE_URL else 'Disabled'}")
-    print(f"[INFO] Redis caching: {'Enabled' if CACHE_ENABLED else 'Disabled'}")
-    print(f"[INFO] Background jobs: {'Enabled' if job_queue else 'Disabled'}")
-    print(f"[INFO] Agentforce endpoint: /analyzeBillForAgentforce")
-    print(f"[INFO] API key auth: {'Enabled' if os.environ.get('API_KEY') else 'Disabled (no API_KEY set)'}")
-    print(f"[INFO] Version 9.2 - Improved prompts and formatting")
+    logger.info("Starting Texas Bill Analyzer v9.2 on port %d", port)
+    logger.info("Legislative session: %s", CURRENT_SESSION)
+    logger.info("AI formatting: %s", 'Enabled' if INFERENCE_URL else 'Disabled')
+    logger.info("Redis caching: %s", 'Enabled' if CACHE_ENABLED else 'Disabled')
+    logger.info("Background jobs: %s", 'Enabled' if job_queue else 'Disabled')
+    logger.info("Agentforce endpoint: /analyzeBillForAgentforce")
+    logger.info("API key auth: %s", 'Enabled' if os.environ.get('API_KEY') else 'Disabled (no API_KEY set)')
+    logger.info("Version 9.2 - Improved prompts and formatting")
     app.run(host="0.0.0.0", port=port)

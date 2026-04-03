@@ -1,11 +1,14 @@
 # utils.py - Shared utility functions for bill analysis
 import io
+import logging
 import os
 import re
 import json
 import urllib3
 import warnings
 import requests
+
+logger = logging.getLogger(__name__)
 from pdfminer.high_level import extract_text
 
 # -----------------------------
@@ -42,7 +45,7 @@ def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
             txt = re.sub(r"\n{3,}", "\n\n", txt).strip()
             return txt
     except Exception as e:
-        print(f"[ERROR] PDF extraction failed: {e}")
+        logger.error("PDF extraction failed: %s", e)
         return ""
 
 def get_appropriate_text_limit(text: str) -> int:
@@ -95,7 +98,7 @@ def try_bill_url_patterns(bill_type: str, bill_num: str, session: str) -> tuple:
         try:
             response = _telicon_request('head', pattern["url"], timeout=5)
             if response.status_code == 200:
-                print(f"[SUCCESS] Found bill using {pattern['type']}")
+                logger.info("Found bill using %s", pattern['type'])
                 return pattern["url"], pattern["type"]
         except:
             continue
@@ -123,7 +126,7 @@ def try_fiscal_note_patterns(bill_type: str, bill_num: str, session: str) -> tup
         try:
             response = _telicon_request('head', pattern["url"], timeout=5)
             if response.status_code == 200:
-                print(f"[SUCCESS] Found fiscal note using {pattern['type']}")
+                logger.info("Found fiscal note using %s", pattern['type'])
                 return pattern["url"], pattern["type"]
         except:
             continue
@@ -157,7 +160,7 @@ def extract_fiscal_data_with_claude(fiscal_note_text: str, timeout: int = 60) ->
         return {"fiscal_note_summary": "", "total_fiscal_impact": 0}
 
     if not all([INFERENCE_URL, INFERENCE_KEY, INFERENCE_MODEL_ID]):
-        print('[WARN] Heroku Managed Inference not configured')
+        logger.warning('Heroku Managed Inference not configured')
         return {
             "fiscal_note_summary": fiscal_note_text[:3000],
             "total_fiscal_impact": 0
@@ -216,7 +219,7 @@ Fiscal Note (first {text_limit} chars):
         )
 
         if response.status_code != 200:
-            print(f'[ERROR] Fiscal extraction failed: {response.status_code}')
+            logger.error('Fiscal extraction failed: %s', response.status_code)
             return {
                 "fiscal_note_summary": fiscal_note_text[:3000],
                 "total_fiscal_impact": 0
@@ -233,17 +236,17 @@ Fiscal Note (first {text_limit} chars):
                 response_text = response_text[4:].strip()
 
         result = json.loads(response_text)
-        print(f'[SUCCESS] Extracted fiscal data: ${result.get("total_fiscal_impact", 0):,.2f}')
+        logger.info('Extracted fiscal data: $%s', f'{result.get("total_fiscal_impact", 0):,.2f}')
         return result
 
     except json.JSONDecodeError as e:
-        print(f'[ERROR] JSON parsing failed: {e}')
+        logger.error('JSON parsing failed: %s', e)
         return {
             "fiscal_note_summary": fiscal_note_text[:3000],
             "total_fiscal_impact": 0
         }
     except Exception as e:
-        print(f'[ERROR] Fiscal extraction failed: {e}')
+        logger.error('Fiscal extraction failed: %s', e)
         return {
             "fiscal_note_summary": fiscal_note_text[:3000],
             "total_fiscal_impact": 0

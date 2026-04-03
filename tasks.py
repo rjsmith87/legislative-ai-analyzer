@@ -1,5 +1,8 @@
 # tasks.py - Background tasks for analyzing huge bills
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from utils import (
     CURRENT_SESSION,
@@ -19,7 +22,7 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
     Background task to analyze a bill - NO TIMEOUT!
     This runs in a worker dyno separate from the web dyno.
     """
-    print(f"[BACKGROUND JOB] Starting analysis for {bill_number}")
+    logger.info("Starting background analysis for %s", bill_number)
 
     bill_type, bill_num = parse_bill_number(bill_number)
     if not bill_type or not bill_num:
@@ -44,7 +47,7 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
 
     # Fetch bill PDF
     try:
-        print(f"[BACKGROUND JOB] Fetching bill from: {bill_url}")
+        logger.info("Fetching bill from: %s", bill_url)
         bill_response = _telicon_request('get', bill_url, timeout=60)
         if bill_response.status_code != 200:
             return {
@@ -65,7 +68,7 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
             "success": False
         }
 
-    print(f"[BACKGROUND JOB] Extracted {len(bill_text)} characters")
+    logger.info("Extracted %d characters", len(bill_text))
 
     # Check for fiscal note
     fiscal_relevant = should_fetch_fiscal_note(bill_text)
@@ -79,18 +82,18 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
 
         if fiscal_url:
             try:
-                print(f"[BACKGROUND JOB] Fetching fiscal note from: {fiscal_url}")
+                logger.info("Fetching fiscal note from: %s", fiscal_url)
                 fiscal_response = _telicon_request('get', fiscal_url, timeout=30)
                 if fiscal_response.status_code == 200:
                     fiscal_text = extract_text_from_pdf_bytes(fiscal_response.content)
                     if fiscal_text:
-                        print(f"[BACKGROUND JOB] Fiscal note found: {len(fiscal_text)} characters")
+                        logger.info("Fiscal note found: %d characters", len(fiscal_text))
                         # Use longer timeout for background jobs
                         fiscal_data = extract_fiscal_data_with_claude(fiscal_text, timeout=120)
                         fiscal_note_summary = fiscal_data.get('fiscal_note_summary', '')
                         total_fiscal_impact = fiscal_data.get('total_fiscal_impact', 0)
             except Exception as e:
-                print(f"[WARN] Fiscal note fetch failed: {e}")
+                logger.warning("Fiscal note fetch failed: %s", e)
 
     # Build result
     result = {
@@ -109,5 +112,5 @@ def analyze_bill_task(bill_number: str, session: str) -> dict:
         "timestamp": datetime.utcnow().isoformat()
     }
 
-    print(f"[BACKGROUND JOB] Analysis complete for {formatted_bill}")
+    logger.info("Background analysis complete for %s", formatted_bill)
     return result

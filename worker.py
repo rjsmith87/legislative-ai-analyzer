@@ -1,7 +1,10 @@
 # worker.py - Background job processor
+import logging
 import os
 from redis import Redis
 from rq import Worker, Queue, Connection
+
+logger = logging.getLogger(__name__)
 
 redis_url = os.environ.get('REDIS_URL')
 
@@ -13,5 +16,5 @@ listen = ['default']
 if __name__ == '__main__':
     with Connection(redis_conn):
         worker = Worker(list(map(Queue, listen)))
-        print(f'[WORKER] Starting RQ worker, listening on: {listen}')
+        logger.info('Starting RQ worker, listening on: %s', listen)
         worker.work()
